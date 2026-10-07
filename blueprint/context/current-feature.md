@@ -1,179 +1,248 @@
-# Feature: Deploy workflow + GitHub Pages
+# Feature: Responsive, clean UI
 
-**From build-plan:** feature 5
+**From build-plan:** feature 7
 **Build attempt:** 1
-**Status:** not started
-**Branch:** `feature/deploy-workflow-github-pages`
+**Status:** verified
+**Branch:** `feature/responsive-clean-ui`
 
 ## Goal
 
-Satisfy requirements 5, 10, and 11 (build-plan feature 5): a GitHub Actions
-workflow that builds and deploys the site to GitHub Pages, triggering on
-every push to the default branch and manually from "Run workflow", using
-only the automatic `GITHUB_TOKEN` with minimal explicit permissions and the
-official Pages actions - plus the README deploy instructions the evaluator
-needs (Settings -> Pages -> Source: GitHub Actions, and the accepted
-first-run failure).
+Deliver build-plan feature 7 with the additions the user approved for this
+build: polish the issue list for desktop and phone (readable single-column
+layout, clear label chips, clear typography, working on a small viewport)
+and add author avatars, client-side search/filter, inline SVG icons, dark
+mode via `prefers-color-scheme`, and a local Playwright browser-test
+harness. The feature ships as plain CSS plus Angular signals; the only new
+dependency is the Playwright test runner (dev-only, local).
 
 ## In scope
 
-- `.github/workflows/deploy.yml` - one workflow, two jobs (official Pages
-  starter shape):
-  - **Triggers:** `push` to `main` and `workflow_dispatch`.
-    (Recorded decision: the default-branch name must be a literal in
-    GitHub Actions; `main` is the default branch GitHub assigns to the
-    evaluator's new public repository and matches this project's landing
-    plan to `main`.)
-  - **Permissions (workflow level, explicit minimal set):** `contents: read`,
-    `issues: read`, `pages: write`, `id-token: write`. Declaring any
-    permissions block resets everything unspecified to `none`, so
-    `issues: read` must be explicit for the GraphQL fetch.
-  - **`build` job:** checkout -> `setup-node` (Node 22, npm cache) ->
-    `npm ci` -> `npm run lint` -> `npm test` -> `configure-pages` (id
-    `pages`) -> `npm run build -- --base-href "${{ steps.pages.outputs.base_path }}/"` ->
-    `npm run verify:bundle` (feature 4's handoff: the real token exists in
-    this environment, so this is where the token-leak audit proves itself)
-    -> `upload-pages-artifact` with `path: dist/issues-list/browser`.
-    The dynamic base href is required: project Pages sites are served under
-    `/<repository-name>/`, and the repository name must come from the
-    workflow context (`configure-pages` output), never from code (requirement
-    7). The `prebuild` fetch runs during `npm run build` as before:
-    `GITHUB_ACTIONS=true`, `GITHUB_TOKEN`, and `GITHUB_REPOSITORY` are all
-    provided automatically.
-  - **`deploy` job:** `needs: build`, official `deploy-pages` action,
-    `environment: github-pages` with the deployment URL output, and
-    workflow-level `concurrency: { group: pages, cancel-in-progress: false }`.
-  - Action majors pinned to stable releases: `checkout@v4`,
-    `setup-node@v4`, `configure-pages@v5`, `upload-pages-artifact@v3`,
-    `deploy-pages@v4`.
-  - No secrets, no PATs, no `pull_request` trigger, no extra jobs.
-- **README:** add a "Deploying" section (keeping the Angular scaffold
-  sections for feature 8 to rewrite) covering: fork/push to your own public
-  repo; Settings -> Pages -> Source: GitHub Actions; push or "Run workflow"
-  to build and deploy; the list refreshes by running the workflow again
-  with no code changes; and the explicitly accepted caveat that the very
-  first push-triggered run fails until Pages is enabled (per TEST.md).
-- **Verification (local):** PyYAML syntax parse of the workflow file;
-  every command the workflow runs is one already proven by
-  this project's local gates; a step-by-step contract review against the
-  in-scope list above.
-- **Verification (end-to-end, disposable repo):** prove the whole chain
-  against GitHub for real, on the empty public repository
-  `AidaBadawy/issues-list-e2e` (remote name `e2e`), mirroring TEST.md steps
-  9-12:
-  1. Push the feature-branch content as `main` (becomes the default branch
-     of the empty repo) - proves the push trigger fires.
-  2. Create two test issues, one with a label - real data to display.
-  3. Enable Pages: Settings -> Pages -> Source: GitHub Actions (via API).
-  4. Watch the workflow run(s) with `gh run watch` - proves the fetch
-     writes real issues with the automatic `GITHUB_TOKEN` (carried GraphQL
-     permission risk), `verify:bundle` passes with the real token present,
-     and the Pages deploy succeeds (re-running the failed first run or
-     `workflow_dispatch` after enabling Pages covers the accepted
-     first-run caveat).
-  5. Fetch the deployed site - issues render, base href `/<repo>/` is
-     correct, page HTML contains no token.
-  6. Refresh check (requirement 12): create another issue, run the
-     workflow manually, confirm the new issue appears with no code
-     changes.
-  Evidence recorded in the spec's Evidence section before `/complete`.
+1. **Plan + overview bookkeeping** - rewrite build-plan Decision 4 (avatars
+   are now in scope, marked revised for feature 7), extend the feature 7
+   checklist line to name the five additions, update the overview's Features,
+   data-model, and UI/UX passages (including the new optional
+   `authorAvatarUrl` field), and recompute the `blueprint:source-hash`
+   marker with the established fingerprint (sha256 of project-plan bytes,
+   `0x00`, build-plan bytes with `- [x]` normalized to `- [ ]`).
+2. **Avatar data contract (additive)** - GraphQL query fetches
+   `avatarUrl(size: 96)` inside the existing `author { login }` selection;
+   `mapIssue` emits `authorAvatarUrl: node.author?.avatarUrl ?? null`; the
+   `Issue` interface gains optional `authorAvatarUrl?: string | null`;
+   `scripts/issues-lib.spec.mjs` gains assertions for the new field.
+3. **Design tokens + dark mode + global type** - `src/styles.css` defines
+   CSS custom properties on `:root` (background, surface, text, muted,
+   link, border, chip background, row hover, focus ring) with a
+   `@media (prefers-color-scheme: dark)` override block and
+   `color-scheme: light dark`; system font stack, comfortable line-height,
+   light background from first paint. `src/app/app.css` gets responsive
+   page padding (smaller on phones, roomier on desktop) inside the
+   existing single-column measure.
+4. **List polish + icons + avatars + responsive layout** -
+   `issue-list.html` groups number, title, and chips into one `.issue-main`
+   row (they never split); `.issue-meta` carries author, opened date, and a
+   20x20 circular avatar (`alt=""`, `loading="lazy"`, rendered only when
+   `authorAvatarUrl` is present, text-only when absent or author is null).
+   Desktop: meta right-aligned on the same row, hairline-separated rows
+   with the list closed top and bottom. At `max-width: 40rem` meta drops
+   beneath the title row, padding shrinks, long titles wrap
+   (`overflow-wrap: anywhere`), chips wrap. Pill chips with the API label
+   color on the border only; tabular numerals for issue numbers;
+   muted-but-accessible secondary text; visible `:focus-visible` ring;
+   row hover only under `@media (hover: hover)`, no animation. Inline SVG
+   icons (external-link after issue titles, magnifier in the search field)
+   using `currentColor` with `aria-hidden="true"`.
+5. **Search / filter** - `issue-list.ts` gains `query = signal('')` and a
+   computed filtered list over a pure `filterIssues(issues, query)` helper
+   in `src/app/issues/issue-query.ts` (case-insensitive match across
+   title, number, label names, and author; empty query returns all). A
+   labeled input (`aria-label` + placeholder "Search issues", `(input)`
+   handler narrowing `Event` to `HTMLInputElement`, no `$any`) renders only
+   in the active-list branch. When a query is active and matches nothing,
+   show "No issues match your search."; the existing "No open issues." and
+   placeholder messages stay unreachable by search logic. Query is
+   in-memory only (no persistence, no network).
+6. **Fixture configuration + browser harness** - new
+   `src/app/issues/issues.fixture.ts` (sample issues with labels and
+   avatar URLs, `example.invalid` issue URLs, neutral owner names so the
+   audit stays clean) wired through an explicit `fixture` build
+   configuration (`fileReplacements`) plus matching serve configuration in
+   `angular.json`. Playwright harness per the `/tests browser` skill:
+   `@playwright/test` dev dependency + local Chromium (both require user
+   approval at install time), `playwright.config.ts` with
+   `webServer: npm start -- --configuration=fixture` on port 4200, one
+   smoke test in `e2e/smoke.spec.ts` covering: fixture list renders rows,
+   search input filters row count, `colorScheme: 'dark'` emulation changes
+   the computed background, and a 360px viewport has no horizontal
+   overflow; `test:browser` script in `package.json`; `Browser tests:
+   npm run test:browser` bullet in `AGENTS.md` Commands; test artifacts
+   gitignored.
+7. **Full gate pass** - one clean pass of the complete local gate set plus
+   browser tests and the user's eyeball review on the fixture server.
 
 ## Out of scope
 
-- Actually pushing to `origin` (`AidaBadawy/issues-list`) - the real
-  project repository is untouched by this feature; the disposable `e2e`
-  repository is the only push target. Deleting the disposable repository
-  afterwards is the user's call.
-- The full README rewrite (feature 8), reload-freshness verification
-  (feature 6), and CI additions beyond this deploy workflow (none exist
-  yet; `/ci` remains available if desired later).
-- Changing app code, the fetch script, or `verify:bundle` - except the
-  import guard added to `verify-bundle.mjs` when the E2E run exposed that
-  its top-level `main()` executed during `vitest` import (fatal on a
-  fresh runner with no `dist/`; locally masked). Recorded in Evidence.
+- Scheduled/cron refresh of the data (user declined for this build).
+- Closed-issue views, pagination, result caps (plan: every open issue, one
+  page, newest first).
+- Downloadable custom fonts or icon fonts (system fonts; icons are inline
+  SVG), CSS frameworks, Sass, CSS-in-JS.
+- Adding browser tests to the deploy workflow, `verify`, or any CI (the
+  `/tests browser` skill forbids the slower gate without a separate
+  request).
+- Sorting or multi-field filter UI beyond the single search box.
+- Any fetch behavior change beyond the additive `avatarUrl` field; the
+  workflow, token handling, and gating stay untouched.
 
 ## Build loop
 
-Build one small step at a time. `workflow.stepReview` is `feature`: one review
-packet after all steps. `workflow.checkpointCommits` is `disabled`: no
-checkpoint commits; `/complete` makes the final feature commit. Never accept a
-review packet you have not read.
+Build one small step at a time. `workflow.stepReview` is `feature`: one
+review packet after all steps. `workflow.checkpointCommits` is `disabled`:
+no checkpoint commits; `/complete` makes the final feature commit. Never
+accept a review packet you have not read. The plan/overview edits in step 1
+are part of this feature and land with its commit.
 
 ## Build steps
 
-- [x] **Step 1 - Workflow file** - Write `.github/workflows/deploy.yml`
-  exactly to the contract above. *Done when:* `python3` PyYAML parses the
-  file without error, and a contract checklist (triggers, permissions, job
-  order, artifact path, no secrets) is confirmed against the In scope list.
-- [x] **Step 2 - README deploy section** - Add the "Deploying" section with
-  the Pages source step, refresh-via-Rerun instructions, and the accepted
-  first-run failure note. *Done when:* the section exists and every command
-  or menu path it names matches TEST.md steps 9-12 wording.
-- [ ] **Step 4 - Disposable-repo end-to-end** - Execute the six-point
-  E2E checklist in In scope against `AidaBadawy/issues-list-e2e` using the
-  `e2e` remote and `gh`. *Done when:* the workflow run is green (fetch
-  wrote issues, audit clean, deploy succeeded), the deployed page shows
-  the test issues with correct base href and no token in HTML, and a
-  manual rerun after a new issue makes it appear on the site; every
-  result recorded as Evidence.
-- [x] **Step 5 - Full gate pass + command rehearsal** - Run the complete
-  local gate set, confirming each is exactly what the workflow will run,
-  including a `npm run build -- --base-href /rehearsal-repo/` build to
-  prove the dynamic base-href flag works with `prebuild`. *Done when:*
-  `npm run lint`, `npm test`, `npm run build`,
-  `npm run build -- --base-href /rehearsal-repo/`, and
-  `npm run verify:bundle` all exit 0 on the feature branch in one pass.
+- [x] **Step 1 - Plan + overview updates** - Rewrite build-plan Decision 4
+  (revised for feature 7: avatars render when `authorAvatarUrl` is
+  present, null authors stay text-only), extend the feature 7 checklist
+  line to name avatars, search/filter, inline SVG icons, dark mode, and the
+  browser-test harness; update overview Features (around line 48), data
+  model (author line gains `authorAvatarUrl`), and UI/UX (around line 116);
+  recompute and rewrite the source-hash marker. *Done when:* an independent
+  recompute of the fingerprint equals the marker byte-for-byte, and a grep
+  of overview/build-plan shows no stale "no avatars" claim outside the
+  historical feature 3 checklist line.
+- [x] **Step 2 - Avatar data contract** - Add `avatarUrl(size: 96)` to the
+  query, emit `authorAvatarUrl` in `mapIssue`, add the optional interface
+  field, extend `makeNode` and assertions in `issues-lib.spec.mjs`
+  (present avatar, null author). *Done when:* `npm test` is green (scripts
+  + app suites) and `npm run build` compiles without touching any
+  consumer beyond the type.
+- [x] **Step 3 - Design tokens + dark mode + global type** - Token
+  definitions with light/dark sets and `color-scheme: light dark` in
+  `styles.css`; system font stack; responsive shell padding in `app.css`.
+  *Done when:* `npm run lint`, `npm test`, and `npm run build` pass, and
+  both color schemes are defined (grep shows `:root` and
+  `prefers-color-scheme` blocks).
+- [x] **Step 4 - List structure, polish, icons, avatars** - Implement the
+  `.issue-main` grouping, desktop/phone layouts, chips, focus/hover rules,
+  external-link icon, and avatar rendering; existing bindings and message
+  strings unchanged, untrusted text still bound as text. *Done when:*
+  `npm run lint`, `npm test`, and `npm run build` pass, and a read-through
+  confirms: stacked meta at `<= 40rem`, wrapping title/chips, avatar only
+  behind an `@if (issue.authorAvatarUrl)`, no inline styles beyond the
+  existing label color binding, no CSS comments.
+- [x] **Step 5 - Search / filter** - Add `issue-query.ts` with
+  `filterIssues` plus its spec (title/number/label/author match,
+  case-insensitivity, empty query returns all, no-match returns empty),
+  wire the signal state and input into the component, distinct no-match
+  message. *Done when:* `npm test` green including the new filter tests,
+  `npm run lint` and `npm run build` pass, and the template shows no
+  `$any` usage and renders the input only in the active-list branch.
+- [x] **Step 6 - Fixture configuration + browser harness** - Create
+  `issues.fixture.ts`, add the `fixture` build/serve configurations, install
+  `@playwright/test` + Chromium (request user approval first), add
+  `playwright.config.ts`, `e2e/smoke.spec.ts`, `test:browser` script, the
+  `AGENTS.md` Browser tests bullet, and gitignore entries. *Done when:*
+  `npm run test:browser` exits 0 with the smoke test green, plain
+  `npm start` still renders the placeholder (decision 1 intact), and
+  `npm run verify:bundle` stays clean with the fixture present but excluded
+  from default builds.
+- [x] **Step 7 - Full gate pass + evidence** - Run the complete gate set
+  in one pass and hand the eyeball checklist to the user. *Done when:*
+  `npm run lint`, `CI=true npm test`, `npm run build`,
+  `npm run verify:bundle`, and `npm run test:browser` all exit 0 in one
+  sequence, and the user reports the fixture walk-through (desktop +
+  ~360px, light + dark, search on/off) in the review packet.
 
 ## Files / areas
 
-- `.github/workflows/deploy.yml` - new (new `.github/` directory)
-- `README.md` - add one section, keep existing scaffold content
-- No `src/` or `scripts/` changes expected
+- `blueprint/build-plan.md` - Decision 4 rewrite, feature 7 line
+- `blueprint/context/project-overview.md` - Features/data-model/UI-UX
+  passages + source-hash marker
+- `scripts/issues-lib.mjs` - query `avatarUrl(size: 96)`, mapper field
+- `scripts/issues-lib.spec.mjs` - mapper assertions
+- `src/app/issues/issue-snapshot.ts` - optional `authorAvatarUrl`
+- `src/styles.css` - tokens, dark mode, global typography
+- `src/app/app.css` - responsive shell padding
+- `src/app/issues/issue-list/issue-list.{ts,html,css}` - structure,
+  polish, icons, avatar, search state and input
+- `src/app/issues/issue-query.ts` + `issue-query.spec.ts` - filter logic
+- `src/app/issues/issues.fixture.ts` - fixture snapshot (fixture config
+  only)
+- `angular.json` - `fixture` build + serve configurations
+- `playwright.config.ts`, `e2e/smoke.spec.ts` - browser harness
+- `package.json` - `test:browser` script, `@playwright/test` devDep
+- `.gitignore` - Playwright artifacts
+- `AGENTS.md` - `Browser tests: npm run test:browser`
+- Not touched: `.github/workflows/`, `scripts/fetch-issues.mjs`,
+  `scripts/verify-bundle.mjs`, `issue-view-state.ts`, shipped skill files
 
 ## Data / contracts
 
-- Artifact path contract: `dist/issues-list/browser` (confirmed in feature
-  4's audit: 4 files scanned there) - the workflow's `upload-pages-artifact`
-  must point at exactly this directory or Pages deploys nothing.
-- Env contract (from feature 2): fetch reads only `GITHUB_TOKEN` and
-  `GITHUB_REPOSITORY`; Actions supplies `GITHUB_ACTIONS=true`, which is the
-  gate that turns the fetch on. No workflow-level `env:` entries are needed
-  for these.
-- Permission contract (from `build-plan.md` Risks): the auto token reading
-  issues via GraphQL with `issues: read` declared is confirmed by this
-  feature's first real run; if GraphQL ever refuses, that is a blocking
-  finding for the user's TEST.md pass, recorded here as the known risk
-  carried from the plan.
-- Cache contract: decision 2 - no service workers or custom cache headers;
-  the workflow adds no caching configuration beyond npm's `setup-node`
-  cache, which affects build speed only, not Pages delivery.
-- Base-href contract: `configure-pages` output `base_path` (for example
-  `/my-repo`) is passed to the build as `--base-href <base_path>/`; local
-  builds keep the default `/`, so no source file embeds a repository
-  name.
+- `Issue` gains only an optional field: `authorAvatarUrl?: string | null`.
+  `author: string | null`, labels, number, title, url, createdAt are
+  unchanged. Existing fixtures and archives stay valid.
+- Mapper rule: `authorAvatarUrl` mirrors author presence (null when the
+  author is null); never invents URLs. Fetch remains build-time only,
+  `GITHUB_TOKEN` gating and `null` vs `[]` snapshot semantics untouched.
+- Rendering contract from feature 3 preserved: same elements and
+  bindings, strings "No open issues.", placeholder text, `#N`, author
+  fallback "deleted user", `DatePipe` format, heading "Open issues".
+  New string added: "No issues match your search." (search-active only).
+- Avatar trust rule: `avatarUrl` comes from the GitHub API and is bound
+  via property binding (`[src]`), fixed 20x20 with `alt=""`; it is
+  decorative because the author name is rendered as text. No token, no
+  user-controlled URL construction, no PII beyond the public login already
+  rendered. Avatar images load at view time from
+  `avatars.githubusercontent.com` (public, unauthenticated).
+- Decision 4 (revised): avatars render when available; text-only fallback
+  otherwise. Decision 1 holds: plain `npm start` never loads fixture data.
+- Search is client-side over the in-memory snapshot only; the query is
+  never persisted or sent anywhere.
+- Accessibility: text contrast at or above WCAG AA, visible keyboard
+  focus, list semantics (`ul`/`li`) preserved, search input labeled, icons
+  `aria-hidden`, viewport meta already present.
+- Budgets: `anyComponentStyle` error cap 8kB (component CSS is under 1kB
+  today); initial bundle unaffected (fixture excluded from default builds;
+  Playwright is dev-only).
 
 ## Testing
 
-- Runner: `npm test` (gate declared in `AGENTS.md`).
-- Verification is PyYAML syntax parse + contract review + rehearsing the
-  workflow's commands locally (the existing gate set), then the
-  disposable-repo E2E in Step 4. No new test runner or YAML linter is
-  added to the project.
-- E2E prerequisite (user-side): `gh` authenticated (`gh auth login` or
-  `GH_TOKEN`) with `repo` + `workflow` scopes; git push access to the
-  `e2e` remote.
-- Evidence for the review packet: workflow parse output, README section
-  text, the final gate results, and the E2E run/site/refresh results.
+- Runner: `npm test` (`ng test` + `vitest run scripts`), declared in
+  `AGENTS.md`; it is a hard gate for every step.
+- Logic in scope ships tests in the same step: mapper `authorAvatarUrl`
+  assertions (step 2) and `filterIssues` unit tests (step 5: case-insensitive
+  title/number/label/author match, empty or whitespace-only query (trimmed)
+  returns all, no-match returns empty).
+- Component rendering and browser flows are exempt from unit tests (scope
+  rule) and get browser + eyeball evidence instead.
+- Browser tests: `npm run test:browser` (declared in `AGENTS.md` from step
+  6) - one Playwright smoke test against the fixture server proving list
+  render, search filtering, dark-scheme background change, and 360px
+  no-overflow. Not part of `verify` or CI.
+- UI evidence: user eyeball at `npm start -- --configuration=fixture`:
+  desktop + ~360px phone emulation, light + dark, search off/on, avatars
+  present, recorded in the review packet.
 
 ## Notes for the AI
 
-- No em dashes in generated content.
-- Workflow YAML must be strict about indentation; prefer the official
-  GitHub Pages starter layout over inventing a structure.
-- README stays accurate to this codebase: commands are `npm` scripts
-  (`npm run build` triggers the fetch), and "Run workflow" is the refresh
-  mechanism.
-- Do not add `workflow_run`, schedules, or branch filters beyond `main`;
-  requirement 5 names exactly two triggers.
-- If a gate fails while preparing this feature, stop and report rather
-  than weakening the workflow.
+- No em dashes (U+2014) anywhere in generated content, including specs,
+  comments, and commit messages.
+- No comments in CSS; class names and this spec carry the intent. Minimal
+  TS comments (why only).
+- Signals for component state (no RxJS for plain state), no `any`, no
+  `$any` in templates; standalone components; built-in control flow only.
+- Plain `npm start` must keep rendering the placeholder - fixture data is
+  reachable only via `--configuration=fixture`.
+- The deploy workflow, fetch script, and audit script stay untouched;
+  `npm run verify:bundle` must remain clean throughout (fixture uses
+  `example.invalid` URLs and neutral names on purpose).
+- Playwright installs (`npm i -D @playwright/test`, `npx playwright
+  install chromium`) require the user's approval through the normal
+  approval flow before running.
+- If a feature 3 assertion fails after restructuring, fix the markup, not
+  the test; those assertions encode requirement contracts.
+- Landing stays local-merge into `development`; never push `origin`
+  without an explicit ask.

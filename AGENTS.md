@@ -323,6 +323,7 @@ For this Angular project:
 - Build: `npm run build` (static output in `dist/issues-list`)
 - Lint: `npm run lint`
 - Tests: `npm test`
+- Browser tests: `npm run test:browser`
 
 There is no production server command: the build emits a static site deployed
 to GitHub Pages by the workflow, not a running server.

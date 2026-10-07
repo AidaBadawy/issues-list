@@ -16,7 +16,7 @@ Do not renumber completed features; their archived specs refer to those IDs.
 - [x] 4. **Token and portability verification** - Prove the built bundle contains no token and no hardcoded owner/repository/URL anywhere, and that the same code builds correctly for a different owner/repo name supplied only via environment.
 - [x] 5. **Deploy workflow + GitHub Pages** - Workflow with `workflow_dispatch` and push-to-default-branch triggers that builds the site and deploys to GitHub Pages (official Pages actions, minimal permissions); README documents the required Settings → Pages → Source: GitHub Actions step and the accepted first-run failure.
 - [x] 6. **Refresh-on-reload behavior** - Verify that after a redeploy a normal page reload shows the new issue list with no hard refresh, shipping the default Angular build as-is: no service workers, no custom cache headers, no caching middleware added.
-- [ ] 7. **Responsive, clean UI** - Polish the list for desktop and phone: readable single-column layout, label chips, clear typography, working on a small viewport.
+- [ ] 7. **Responsive, clean UI** - Polish the list for desktop and phone: readable single-column layout, label chips, clear typography, working on a small viewport; plus the user-approved additions: author avatars, client-side search/filter, inline SVG icons, dark mode via `prefers-color-scheme`, and a local Playwright browser-test harness (documented command, not CI).
 - [ ] 8. **README** - Explains how the app works (build-time GraphQL fetch, snapshot semantics), how to deploy (fork/push, enable Pages, run workflow), and how to refresh the data.
 - [ ] 9. **Automated tests** - Unit tests for the fetch/pagination logic (mocked GraphQL) and for rendering issues and the empty state; wired into a repeatable command.
 
@@ -93,8 +93,9 @@ Every numbered requirement and optional extra maps to at least one feature:
 2. **Cache freshness:** no custom cache headers, no service workers — ship
    the default Angular build and verify reload freshness (feature 6).
 3. **Sort order:** newest first by opened date.
-4. **Author display:** plain text names, no avatars (less to sanitize, less
-   to test).
+4. **Author display:** plain text login name always rendered; show an avatar
+   when the API supplies `authorAvatarUrl`, text-only otherwise (revised for
+   feature 7; previously "no avatars").
 5. **Issue cap:** none — include every open issue, even if there are more
    than 100.
 

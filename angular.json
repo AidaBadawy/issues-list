@@ -50,6 +50,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "fixture": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/app/issues/issues.data.ts",
+                  "with": "src/app/issues/issues.fixture.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -62,6 +73,9 @@
             },
             "development": {
               "buildTarget": "issues-list:build:development"
+            },
+            "fixture": {
+              "buildTarget": "issues-list:build:fixture"
             }
           },
           "defaultConfiguration": "development"
