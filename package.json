@@ -8,7 +8,8 @@
     "prebuild": "node scripts/fetch-issues.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test && vitest run scripts",
-    "lint": "ng lint"
+        "lint": "ng lint",
+        "verify:bundle": "node scripts/verify-bundle.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
