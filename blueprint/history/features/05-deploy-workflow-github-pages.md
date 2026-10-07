@@ -2,7 +2,7 @@
 
 **From build-plan:** feature 5
 **Build attempt:** 1
-**Status:** not started
+**Status:** verified
 **Branch:** `feature/deploy-workflow-github-pages`
 
 ## Goal
@@ -109,7 +109,7 @@ review packet you have not read.
   the Pages source step, refresh-via-Rerun instructions, and the accepted
   first-run failure note. *Done when:* the section exists and every command
   or menu path it names matches TEST.md steps 9-12 wording.
-- [ ] **Step 4 - Disposable-repo end-to-end** - Execute the six-point
+- [x] **Step 4 - Disposable-repo end-to-end** - Execute the six-point
   E2E checklist in In scope against `AidaBadawy/issues-list-e2e` using the
   `e2e` remote and `gh`. *Done when:* the workflow run is green (fetch
   wrote issues, audit clean, deploy succeeded), the deployed page shows
@@ -165,6 +165,42 @@ review packet you have not read.
 - Evidence for the review packet: workflow parse output, README section
   text, the final gate results, and the E2E run/site/refresh results.
 
+## Evidence
+
+E2E on `AidaBadawy/issues-list-e2e` (remote `e2e`, default branch `main`,
+site `https://aidabadawy.github.io/issues-list-e2e/`), all results from
+real GitHub runs:
+
+- **Run 37624886496** (push trigger, `ce5f0d3`) - FAILED at Test:
+  `verify-bundle.mjs` ran `main()` at import time, so vitest executed a
+  full audit on a fresh runner without `dist/` and hit `process.exit(1)`.
+  Locally masked because `dist/` always exists. Fixed with a
+  direct-execution guard; re-verified for all three cases (no dist ->
+  tests green; CLI without dist -> exit 1; CLI with dist -> exit 0).
+- **Run 37625130895** (push trigger, `cb6b35e`) - FAILED at Build:
+  `GITHUB_TOKEN is missing` - Actions does not inject the token as an env
+  var automatically; it lives in the `${{ github.token }}` context. Fixed
+  by adding `env: GITHUB_TOKEN: ${{ github.token }}` to the Build step
+  (still the automatic token; no secrets or PATs).
+- **Run 37625393060** (push trigger, `07d305e`) - SUCCESS, zero failed
+  steps. Lint, test (17 tests), Configure Pages, Build, Audit bundle, and
+  Deploy all green. Log proof: `[fetch-issues] Wrote 2 open issue(s) for
+  AidaBadawy/issues-list-e2e` (automatic token, GraphQL `issues: read`
+  confirmed - the plan's carried risk resolved) and `[verify-bundle]
+  clean: 4 dist file(s) and 13 source file(s)` with the real token
+  present in the environment.
+- **Deployed site checks:** `<base href="/issues-list-e2e/"` (dynamic base
+  href works); bundle contains issue titles, `bug` label, author
+  `AidaBadawy`, `createdAt` dates, and issue URLs pointing at
+  `AidaBadawy/issues-list-e2e` (portable - nothing from `origin`); zero
+  matches for `ghp_`, `github_pat_`, or `GITHUB_TOKEN` in HTML and JS.
+- **Refresh (requirement 12):** issue #3 created, then `workflow_dispatch`
+  run **37625763445** succeeded; redeployed bundle (new hash
+  `main-TFV3XJAB.js`, `generatedAt 13:05:35Z`) contains all three issues -
+  list updated with zero code changes.
+- Local gates after the fixes: lint 0, 17 tests 0, build 0, audit clean,
+  base-href rehearsal (`/rehearsal-repo/`) verified in HTML.
+
 ## Notes for the AI
 
 - No em dashes in generated content.
@@ -177,3 +213,6 @@ review packet you have not read.
   requirement 5 names exactly two triggers.
 - If a gate fails while preparing this feature, stop and report rather
   than weakening the workflow.
+
+
+<!-- blueprint:completion {"schemaVersion":2,"specBytes":11676,"specSha256":"07e121e06817206ab578952b565e24d350031e1780ee039590edf0910ebf5618","branch":"refs/heads/feature/deploy-workflow-github-pages","head":"07d305e1b33052c718f57260299031fc16f7e021","baseRef":"refs/heads/development","baseCommit":"ed6bec90d3ebc50b4cb65d0c06825d29d7c01d09","sourceTree":"ea85e995ff55c8e701760f1f416ad54359a6b1d7","landing":"local-merge","absentOptional":[]} -->
