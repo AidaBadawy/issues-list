@@ -18,7 +18,7 @@ Do not renumber completed features; their archived specs refer to those IDs.
 - [x] 6. **Refresh-on-reload behavior** - Verify that after a redeploy a normal page reload shows the new issue list with no hard refresh, shipping the default Angular build as-is: no service workers, no custom cache headers, no caching middleware added.
 - [x] 7. **Responsive, clean UI** - Polish the list for desktop and phone: readable single-column layout, label chips, clear typography, working on a small viewport; plus the user-approved additions: author avatars, client-side search/filter, inline SVG icons, dark mode via `prefers-color-scheme`, and a local Playwright browser-test harness (documented command, not CI).
 - [x] 8. **README** - Explains how the app works (build-time GraphQL fetch, snapshot semantics), how to deploy (fork/push, enable Pages, run workflow), and how to refresh the data.
-- [ ] 9. **Automated tests** - Unit tests for the fetch/pagination logic (mocked GraphQL) and for rendering issues and the empty state; wired into a repeatable command.
+- [x] 9. **Automated tests** - Unit tests for the fetch/pagination logic (mocked GraphQL) and for rendering issues and the empty state; wired into a repeatable command.
 
 ## Requirement mapping (TEST.md → features)
 
