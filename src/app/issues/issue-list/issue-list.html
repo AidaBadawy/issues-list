@@ -1,0 +1,39 @@
+<h1>Open issues</h1>
+
+@if (state === 'placeholder') {
+  <p class="message">Issue data is not available in this build.</p>
+} @else if (state === 'empty') {
+  <p class="message">No open issues.</p>
+} @else {
+  <ul class="issue-list">
+    @for (issue of issues; track issue.number) {
+      <li class="issue">
+        <span class="issue-number">#{{ issue.number }}</span>
+        <a
+          class="issue-title"
+          [href]="issue.url"
+          target="_blank"
+          rel="noopener"
+          >{{ issue.title }}</a
+        >
+        @if (issue.labels.length > 0) {
+          <span class="issue-labels">
+            @for (label of issue.labels; track label.name) {
+              <span
+                class="label-chip"
+                [style.border-color]="'#' + (label.color || 'd0d7da')"
+                >{{ label.name }}</span
+              >
+            }
+          </span>
+        }
+        <span class="issue-meta">
+          {{ issue.author ?? 'deleted user' }} &middot;
+          <time [attr.datetime]="issue.createdAt">{{
+            issue.createdAt | date: 'mediumDate'
+          }}</time>
+        </span>
+      </li>
+    }
+  </ul>
+}
