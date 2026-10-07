@@ -38,4 +38,18 @@ module.exports = defineConfig([
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
     rules: {},
   },
+  {
+    files: ['**/*.mjs'],
+    extends: [eslint.configs.recommended],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        URL: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {},
+  },
 ]);

@@ -5,8 +5,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "prebuild": "node scripts/fetch-issues.mjs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "test": "ng test && vitest run scripts",
     "lint": "ng lint"
   },
   "private": true,
