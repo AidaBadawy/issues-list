@@ -317,16 +317,15 @@ checks do not make the Blueprint unusable.
 ## Commands
 
 <!-- blueprint:onboarding-required -->
-For a standard Next.js project. Change or remove if you're using something else.
+For this Angular project:
 
-- Dev server: `npm run dev` (http://localhost:3000)
-- Build: `npm run build`
-- Production server: `npm run start`
+- Dev server: `npm start` (http://localhost:4200)
+- Build: `npm run build` (static output in `dist/issues-list`)
 - Lint: `npm run lint`
+- Tests: `npm test`
 
-Testing is opt-in. If this project does not already have a unit test runner, run
-`/tests` or `$tests` to add one and update this section with the real test
-commands.
+There is no production server command: the build emits a static site deployed
+to GitHub Pages by the workflow, not a running server.
 
 Browser testing is also opt-in. Run `/tests browser` or `$tests browser` to add
 or normalize a browser harness and document its exact command as `Browser

@@ -10,7 +10,7 @@ Do not renumber completed features; their archived specs refer to those IDs.
 
 ## Your features
 
-- [ ] 1. **Angular scaffold on current stable Angular** - Create the Angular app with the current stable version, minimal app shell (single issue-list page placeholder), lint and production build passing.
+- [x] 1. **Angular scaffold on current stable Angular** - Create the Angular app with the current stable version, minimal app shell (single issue-list page placeholder), lint and production build passing.
 - [ ] 2. **GitHub GraphQL issue fetch** - Build-time script/service that queries every open issue with cursor pagination (no cap — every open issue, even past 100), returning number, title, issue URL, labels, author, and opened date; sorted newest-first by opened date; reads the repo owner/name from the workflow environment (`GITHUB_REPOSITORY`), never hardcoded; uses only `GITHUB_TOKEN` from the environment; when no token is present (local dev), always skip the fetch and render a placeholder.
 - [ ] 3. **Issue list rendering + empty state** - Page renders each issue newest-first with number, title linked to GitHub, label chips, plain text author name (no avatars), and opened date; shows a clear "no open issues" message when the list is empty; untrusted issue text rendered as text only.
 - [ ] 4. **Token and portability verification** - Prove the built bundle contains no token and no hardcoded owner/repository/URL anywhere, and that the same code builds correctly for a different owner/repo name supplied only via environment.

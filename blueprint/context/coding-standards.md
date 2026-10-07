@@ -1,95 +1,89 @@
 # Coding Standards
 
-> Your conventions. Edit these once to match your stack. The defaults below
-> assume Next.js + TypeScript + Tailwind + Prisma; change or trim anything that
-> doesn't fit your project.
->
-> Run `/onboard` after installing the Blueprint. It tunes this file to the real
-> project stack, along with `AGENTS.md`, `CLAUDE.md` when present,
-> `ai-interaction.md`, `.gitignore`, and README placement. Review the result
-> before `/overview`.
+> Conventions for this project. Keep this file matched to the real stack:
+> Angular + TypeScript + plain CSS, static build, GitHub Actions deploy.
+> If the stack changes, retune this file in the same change.
 
 ## TypeScript
 
-- Strict mode enabled
+- Strict mode enabled (tsconfig strict flags stay on)
 - No `any` types - use proper typing or `unknown`
-- Define interfaces for all props, API responses, and data models
+- Define interfaces/types for API responses and data models
 - Use type inference where obvious, explicit types where helpful
 
-## React
+## Angular
 
-- Functional components only (no class components)
-- Use hooks for state and side effects
-- Keep components focused - one job per component
-- Extract reusable logic into custom hooks
-
-## Next.js
-
-- Server components by default
-- Only use `'use client'` when needed (interactivity, hooks, browser APIs)
-- Use Server Actions for form submissions and simple mutations
-- Use API routes when you need:
-  - Webhooks (Clerk, GitHub, etc.)
-  - File uploads with progress tracking
-  - Long-running operations
-  - Specific HTTP status codes or headers
-  - Endpoints for future mobile/CLI clients
-  - Third-party integrations
-- Otherwise, fetch data directly in server components
-- Dynamic routes for item/collection pages
+- Standalone components only (no `NgModules`); the CLI default since v19
+- One component per file, one job per component; small presentational
+  components, logic in services or plain functions
+- Signals for component state and inputs; avoid manual
+  `ChangeDetectorRef` and RxJS subscriptions for plain state
+- Use the built-in control flow (`@if`, `@for`, `@defer`) in templates, not
+  `*ngIf`/`*ngFor`
+- `OnPush` change detection where a component does not need default
+- Do not fetch data in templates; component logic owns data acquisition
+- Keep the app fully static: no server-side rendering, no server APIs, no
+  runtime credentials
 
 ## File Organization
 
-- Components: `src/components/[feature]/ComponentName.tsx`
-- Pages: `src/app/[route]/page.tsx`
-- Server Actions: `src/actions/[feature].ts`
-- Types: `src/types/[feature].ts`
-- Lib/Utils: `src/lib/[utility].ts`
+- Components: `src/app/<feature>/<name>.{ts,html,css,spec.ts}` (Angular CLI
+  naming, no `.component` suffix)
+- Services and pure logic: `src/app/<feature>/<name>.service.ts` or
+  `src/app/<feature>/<name>.ts`
+- Build-time scripts (issue fetch): `scripts/` at the repo root
+- Global styles: `src/styles.css`; component styles live next to the component
 
 ## Naming
 
-- Components: PascalCase (`ItemCard.tsx`)
-- Files: Match component name or kebab-case
-- Functions: camelCase
-- Constants: SCREAMING_SNAKE_CASE
-- Types/Interfaces: PascalCase (no prefix)
+- Classes: PascalCase (`IssueList`, `App`)
+- Files: kebab-case matching the primary class (`issue-list.ts`)
+- Selectors: `app-` prefix, kebab-case (`app-issue-list`), enforced by lint
+- Signals and members: camelCase; constants: SCREAMING_SNAKE_CASE
+- Templates and styles: match the component file base name
 
 ## Styling
 
-- Tailwind CSS for all styling
-- Tailwind v4: CSS-first config (`@theme` in `globals.css`), no `tailwind.config.js`
-- Use shadcn/ui components where applicable
-- No inline styles
-- Dark mode first, light mode as option
-
-## Database
-
-- Use Prisma ORM for all database operations
-- Always use `prisma migrate dev` for schema changes (not `db push`)
-- Run `prisma migrate status` before committing to verify migrations are in sync
-- Production deployments must run `prisma migrate deploy` before the app starts
+- Plain CSS only: component stylesheets plus `src/styles.css`; no CSS
+  framework, no CSS-in-JS
+- Mobile-first responsive rules; the list must work on a phone (project
+  requirement)
+- No inline styles in templates; use bindings or classes
+- Do not hardcode colors that only work in one theme; prefer sensible
+  defaults that read well in light and dark
 
 ## Data Fetching
 
-- Server components fetch directly with Prisma
-- Client components use Server Actions
-- Validate all inputs with Zod
-- Scope every user-owned query by the authenticated Clerk user id (`clerkUserId`); never trust a client-supplied user id
+- All GitHub GraphQL access happens once at build time in the deploy
+  workflow, never in the browser at runtime
+- The only credential is the workflow-provided `GITHUB_TOKEN`; never write
+  it into source, config, committed files, or the built bundle
+- Repo owner/name come from the workflow environment
+  (`GITHUB_REPOSITORY`), never hardcoded
+- Local builds with no token skip the fetch and render a placeholder; they
+  must never prompt for or require a token
+- Treat all issue content (titles, labels, author names) as untrusted text;
+  bind it as text, never as HTML
 
 ## Error Handling
 
-- Use try/catch in Server Actions
-- Return `{ success, data, error }` pattern from actions
-- Display user-friendly error messages via toast
+- A failed issue fetch must fail the build loudly with a clear message; never
+  render a successful-looking empty list when the fetch failed
+- The genuinely empty state ("no open issues") is distinct from a fetch
+  failure
+- Surface unexpected script errors to the workflow log; do not swallow them
 
 ## Testing
 
 The blueprint installs no test runner; testing is opt-in at the project level,
 because the overlay can't know your stack. Adding unit testing is an explicit
-setup task the AI can do through the normal workflow, either as a build-plan item
-or with `/tests`. The setup should choose the stack-native runner, wire the
-scripts or commands, add a small example test, and update the Commands section
-of `AGENTS.md`.
+setup task the AI can do through the normal workflow, either as a build-plan
+item or with `/tests`. The setup should choose the stack-native runner, wire
+the scripts or commands, add a small example test, and update the Commands
+section of `AGENTS.md`.
+
+This project's runner is Vitest through `ng test`, with spec files next to
+their sources (`*.spec.ts`).
 
 When `AGENTS.md` declares a `Verify` command, treat it as the umbrella automated
 gate. It combines only the checks this project actually has, in this order when
@@ -107,8 +101,9 @@ deliberate step, never a silent mid-step install. This is the single definition
 of the switch; the skills and `ai-interaction.md` only point back here.
 
 - **What to test (the scope rule):** pure logic where a wrong answer is possible -
-  parsers, formatters, validators, id/slug builders, server actions. These have
-  assertable inputs and outputs and real edge cases (empty, missing, malformed).
+  parsers, formatters, validators, id/slug builders, build-time fetch
+  transformations. These have assertable inputs and outputs and real edge cases
+  (empty, missing, malformed).
 - **What not to test:** UI components and integration-level surfaces (render or
   export routes, anything driving a real browser or external service). Verify those
   with a screenshot and the build, not brittle unit tests.
@@ -121,13 +116,9 @@ of the switch; the skills and `ai-interaction.md` only point back here.
   `/implement` writes the test with the step, and if a step surfaces logic the spec
   didn't foresee, add a focused test then.
 - An empty suite should fail, not pass, so "no tests ran" never looks like "passed".
-- Test files live next to source files (for example `feature.test.ts`).
+- Test files live next to source files (for example `issue-list.spec.ts`).
 - Run them via the project's test command (see Commands in `AGENTS.md`), not a
   hardcoded tool name.
-
-Stack binding (swap for yours): a TypeScript app uses Vitest, `vi.mock()` for
-external dependencies (Prisma, Clerk, etc.), and `vi.useFakeTimers()` for
-time-dependent logic; a Python app would use pytest; a Go app `go test`.
 
 ## Browser Verification
 
@@ -140,7 +131,7 @@ code and assuming it works.
 - When `Browser tests` is declared, add focused coverage for stable behavioral
   done-whens when it is proportionate, and run the documented command during
   `/check`. Do not assume it proves visual fidelity, real authenticated-profile
-  behavior, browser chrome, or another claim the test does not observe.
+  behavior, browser chrome, or any claim the test does not observe.
 - If no Browser tests command is declared, do not add a runner silently in the
   middle of an unrelated feature. Use the available dev server, browser
   screenshots, build output, API output, or manual evidence instead.
@@ -155,6 +146,7 @@ code and assuming it works.
 - No commented-out code unless specified
 - No unused imports or variables
 - Keep functions under 50 lines when possible
+- `npm run lint` must pass on every change
 
 ## Comments
 
