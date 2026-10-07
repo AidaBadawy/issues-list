@@ -5,5 +5,11 @@
 .shell {
   max-width: 60rem;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .shell {
+    padding: 2rem;
+  }
 }

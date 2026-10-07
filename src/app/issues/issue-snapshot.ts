@@ -9,6 +9,7 @@ export interface Issue {
   url: string;
   labels: Label[];
   author: string | null;
+  authorAvatarUrl?: string | null;
   createdAt: string;
 }
 

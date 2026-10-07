@@ -5,35 +5,87 @@
 } @else if (state === 'empty') {
   <p class="message">No open issues.</p>
 } @else {
-  <ul class="issue-list">
-    @for (issue of issues; track issue.number) {
-      <li class="issue">
-        <span class="issue-number">#{{ issue.number }}</span>
-        <a
-          class="issue-title"
-          [href]="issue.url"
-          target="_blank"
-          rel="noopener"
-          >{{ issue.title }}</a
-        >
-        @if (issue.labels.length > 0) {
-          <span class="issue-labels">
-            @for (label of issue.labels; track label.name) {
-              <span
-                class="label-chip"
-                [style.border-color]="'#' + (label.color || 'd0d7da')"
-                >{{ label.name }}</span
+  <div class="search">
+    <svg
+      class="search-icon"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="M10.5 10.5 14 14" />
+    </svg>
+    <input
+      class="search-input"
+      type="search"
+      aria-label="Search issues"
+      placeholder="Search issues"
+      [value]="query()"
+      (input)="onSearchInput($event)"
+    />
+  </div>
+  @if (query().trim() !== '' && visibleIssues().length === 0) {
+    <p class="message">No issues match your search.</p>
+  } @else {
+    <ul class="issue-list">
+      @for (issue of visibleIssues(); track issue.number) {
+        <li class="issue">
+          <div class="issue-main">
+            <span class="issue-number">#{{ issue.number }}</span>
+            <a
+              class="issue-title"
+              [href]="issue.url"
+              target="_blank"
+              rel="noopener"
+              >{{ issue.title }}<svg
+                class="issue-icon"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+                focusable="false"
               >
+                <path d="M4.5 11.5 11.5 4.5" />
+                <path d="M6 4.5h5.5V10" /></svg
+            ></a>
+            @if (issue.labels.length > 0) {
+              <span class="issue-labels">
+                @for (label of issue.labels; track label.name) {
+                  <span
+                    class="label-chip"
+                    [style.border-color]="'#' + (label.color || 'd0d7da')"
+                    >{{ label.name }}</span
+                  >
+                }
+              </span>
             }
+          </div>
+          <span class="issue-meta">
+            @if (issue.authorAvatarUrl) {
+              <img
+                class="issue-avatar"
+                [src]="issue.authorAvatarUrl"
+                width="20"
+                height="20"
+                alt=""
+                loading="lazy"
+              />
+            }
+            <span
+              >{{ issue.author ?? 'deleted user' }} &middot;
+              <time [attr.datetime]="issue.createdAt">{{
+                issue.createdAt | date: 'mediumDate'
+              }}</time
+            ></span>
           </span>
-        }
-        <span class="issue-meta">
-          {{ issue.author ?? 'deleted user' }} &middot;
-          <time [attr.datetime]="issue.createdAt">{{
-            issue.createdAt | date: 'mediumDate'
-          }}</time>
-        </span>
-      </li>
-    }
-  </ul>
+        </li>
+      }
+    </ul>
+  }
 }

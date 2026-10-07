@@ -8,8 +8,9 @@
     "prebuild": "node scripts/fetch-issues.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test && vitest run scripts",
+    "test:browser": "playwright test",
         "lint": "ng lint",
-        "verify:bundle": "node scripts/verify-bundle.mjs"
+    "verify:bundle": "node scripts/verify-bundle.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
@@ -28,6 +29,7 @@
     "@angular/cli": "^22.2.2",
     "@angular/compiler-cli": "^22.2.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "angular-eslint": "22.5.0",
     "eslint": "^10.9.1",
     "jsdom": "^30.0.0",

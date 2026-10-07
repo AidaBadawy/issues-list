@@ -7,7 +7,7 @@ function makeNode(overrides = {}) {
     title: 'First',
     url: 'https://github.com/acme/repo/issues/1',
     labels: { nodes: [{ name: 'bug', color: 'd73a4a' }] },
-    author: { login: 'octocat' },
+    author: { login: 'octocat', avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=96' },
     createdAt: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -32,6 +32,12 @@ describe('buildIssuesQuery', () => {
     expect(query).toContain('direction: DESC');
     expect(query).toContain('$cursor: String');
   });
+
+  it('selects the author login and a sized avatar URL', () => {
+    const query = buildIssuesQuery();
+    expect(query).toContain('login');
+    expect(query).toContain('avatarUrl(size: 96)');
+  });
 });
 
 describe('mapIssue', () => {
@@ -43,6 +49,7 @@ describe('mapIssue', () => {
       url: 'https://github.com/acme/repo/issues/1',
       labels: [{ name: 'bug', color: 'd73a4a' }],
       author: 'octocat',
+      authorAvatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=96',
       createdAt: '2026-01-01T00:00:00Z',
     });
   });
@@ -54,8 +61,16 @@ describe('mapIssue', () => {
     expect(mapIssue(makeNode({ labels: null })).labels).toEqual([]);
   });
 
-  it('maps a deleted or anonymous author to null', () => {
-    expect(mapIssue(makeNode({ author: null })).author).toBeNull();
+  it('maps a deleted or anonymous author to null with no avatar', () => {
+    const mapped = mapIssue(makeNode({ author: null }));
+    expect(mapped.author).toBeNull();
+    expect(mapped.authorAvatarUrl).toBeNull();
+  });
+
+  it('keeps the author name when an avatar is missing', () => {
+    const mapped = mapIssue(makeNode({ author: { login: 'ghost' } }));
+    expect(mapped.author).toBe('ghost');
+    expect(mapped.authorAvatarUrl).toBeNull();
   });
 });
 

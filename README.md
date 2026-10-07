@@ -2,6 +2,46 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.2.
 
+## How it works
+
+The site is a static Angular build. During `npm run build`, a prebuild
+script queries the repository's open issues through the GitHub GraphQL API
+and writes them into `src/app/issues/issues.data.ts` as a snapshot. The
+page then renders that snapshot: every open issue, newest first, with its
+number, a link to the issue, its labels, its author, and the date it was
+opened.
+
+The fetch only runs inside GitHub Actions (where the automatic
+`GITHUB_TOKEN` and `GITHUB_REPOSITORY` are available). Local builds always
+skip it and show a placeholder instead, so no token is ever stored or
+committed.
+
+## Deploying
+
+The site deploys to GitHub Pages with the workflow in
+`.github/workflows/deploy.yml`.
+
+1. Push this repository to GitHub (fork or new public repository).
+2. In the repository Settings -> Pages, set **Source** to **GitHub
+   Actions**.
+3. Push to the `main` branch, or open the **Actions** tab and press **Run
+   workflow**. The workflow lints, tests, builds (fetching the issues),
+   audits the bundle, and deploys.
+
+Notes:
+
+- The very first run, triggered by your push, may fail because Pages is
+  not enabled yet. That is expected: enable the Pages source as in step 2,
+  then run the workflow again from the Actions tab.
+- To refresh the issue list without changing any code, create or close an
+  issue and press **Run workflow** again.
+- The only credential used is the `GITHUB_TOKEN` that GitHub Actions
+  provides automatically. No personal access tokens or repository secrets
+  are required.
+
+The deployed site is available at `https://<owner>.github.io/<repository>/`
+once the run succeeds.
+
 ## Development server
 
 To start a local development server, run:

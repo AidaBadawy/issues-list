@@ -1,6 +1,6 @@
 # Issues List - Project Overview
 
-<!-- blueprint:source-hash 8aa05794d34f5b86a999fdb6218d66f90d0746272b91cb36f3bd4886092d0502 -->
+<!-- blueprint:source-hash e11a61301b3971f702f218bc6a5fee9480a98ddb5323d8e100df9cd2041fc4f9 -->
 
 > A static site that shows a repository's open issues exactly as they were when
 > the site was last deployed, fetched from the GitHub GraphQL API at build time
@@ -31,8 +31,8 @@ for "done".
   requirements.
 - Trusted users; the only untrusted input is issue content (titles, labels,
   author names) - rendered as text only, never HTML.
-- Single repository per deployment. Non-goals: no filters/search, no closed
-  issues, no comments, no auth, no writes, no server, no analytics.
+- Single repository per deployment. Non-goals: no closed issues, no
+  comments, no auth, no writes, no server, no analytics.
 
 ## Features
 
@@ -45,7 +45,7 @@ Build-plan order; spec each via `/feature`.
    from environment only, newest-first by opened date; local builds skip the
    fetch and render a placeholder.
 3. **Issue list rendering + empty state** - number, title linked to GitHub,
-   label chips, plain text author (no avatars), opened date; clear "no open
+   label chips, plain text author, opened date; clear "no open
    issues" message; untrusted text rendered as text.
 4. **Token and portability verification** - built bundle contains no token and
    no hardcoded owner/repo/URL; builds correctly for a different repo supplied
@@ -57,7 +57,9 @@ Build-plan order; spec each via `/feature`.
    workers, no custom cache headers); verify a normal reload shows the
    redeployed list.
 7. **Responsive, clean UI** - readable single-column layout, label chips,
-   working on a small viewport.
+   working on a small viewport; author avatars, client-side search/filter,
+   inline SVG icons, dark mode via `prefers-color-scheme`, and a local
+   Playwright browser-test harness (documented command, not CI).
 8. **README** - how the app works (snapshot semantics), how to deploy, how to
    refresh data.
 9. **Automated tests** - fetch/pagination (mocked GraphQL), issue rendering,
@@ -65,7 +67,8 @@ Build-plan order; spec each via `/feature`.
 
 Requirement mapping (1–12 + extras → features) lives in `build-plan.md`.
 Resolved decisions (local placeholder, default caching, newest-first order,
-plain-text authors, no issue cap) are recorded there too.
+avatars when available with text-only fallback, no issue cap) are recorded
+there too.
 
 ## Data model
 
@@ -86,7 +89,11 @@ No database or server. One build-time artifact bundled into the static site:
 - `url` (string) - canonical GitHub issue URL (constructed from owner/name +
   number)
 - `labels` (Label[]) - related to the parent snapshot
-- `author` (string) - plain text login; no avatar URL fetched or rendered
+- `author` (string | null) - plain text login; null for deleted/anonymous
+  authors (rendered as "deleted user")
+- `authorAvatarUrl` (string | null, optional) - public avatar URL from the
+  API; rendered as a decorative 20x20 image when present, text-only when
+  absent
 - `createdAt` (ISO-8601 string) - opened date; the sort key
 
 ### Label
@@ -105,6 +112,8 @@ No database or server. One build-time artifact bundled into the static site:
 - **`GITHUB_TOKEN` (auto-provided)** - the only credential; never in the bundle.
 - **GitHub Actions + GitHub Pages** - build, fetch, deploy.
 - **Angular's default test runner** - unit tests (runner confirmed at `/tests`).
+- **Playwright (dev-only)** - local browser smoke tests
+  (`npm run test:browser`) against the fixture configuration; not in CI.
 
 ## Monetization
 
@@ -112,9 +121,12 @@ Not in v1 - technical exercise, no revenue plan.
 
 ## UI/UX
 
-- `/` - single page: repository heading, then the issue list (number, title
-  link, label chips, plain text author, opened date; newest first). Empty
-  state: clear "No open issues." message. Clean, uncluttered, phone-friendly.
+- `/` - single page: repository heading, search box, then the issue list
+  (number, title link with an external-link icon, label chips, author with
+  avatar when available, opened date; newest first, client-side search over
+  title/number/label/author). Empty state: clear "No open issues." message;
+  a search with no matches: "No issues match your search." Clean,
+  uncluttered, phone-friendly, light and dark via `prefers-color-scheme`.
 
 ## Deployment
 

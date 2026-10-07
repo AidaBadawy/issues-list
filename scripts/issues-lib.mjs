@@ -26,6 +26,7 @@ export function buildIssuesQuery() {
         }
         author {
           login
+          avatarUrl(size: 96)
         }
         createdAt
       }
@@ -44,6 +45,7 @@ export function mapIssue(node) {
     url: node.url,
     labels,
     author: node.author?.login ?? null,
+    authorAvatarUrl: node.author?.avatarUrl ?? null,
     createdAt: node.createdAt,
   };
 }
